@@ -26,4 +26,4 @@ Greedy, A for A*, H for Hill-climbing.
   - start-state
   - goal-state
   - forbidden1,forbidden2,forbidden3,…,forbiddenN (optional)
-- The sample.txt is an example provided in the repository 
+- The `sample.txt` is an example provided in the repository 
