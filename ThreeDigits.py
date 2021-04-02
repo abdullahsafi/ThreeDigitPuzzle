@@ -37,6 +37,22 @@ class Node:
 
     def set_index(self, expanded_index):
         self.expanded_index = expanded_index
+    
+    def generate_ancestors(self):
+        ancestor = self
+        while ancestor.get_parent() is not None:
+            ancestor = ancestor.get_parent()
+            yield ancestor.get_state()
+
+    def get_ancestors(self):
+        return list(self.generate_ancestors())
+    
+    def path_to_goal(self):
+        path_to_goal = self.get_ancestors()
+        path_to_goal = path_to_goal[::-1]
+        path_to_str = ' '.join([str(elem) for elem in path_to_goal]) + " " + self.get_state()
+        return path_to_str
+
 
 
 def add_digit(state, index):
@@ -98,75 +114,52 @@ def expand_node(node_state, parent):
         parent.set_children(children)
         return children
 
+def get_exapnded_states(expanded):
+    states_expanded = [i.get_state() for i in expanded]
+    states_expanded = [i for i in states_expanded if i] # Gets rid of none values
+    expanded_to_str = ' '.join([str(elem) for elem in states_expanded])
+    return expanded_to_str
+
 def BFS(start, goal):
     fringe = []
     expanded = []
-    count = 0
+    exp_map = dict() # Maps expanded nodes with children for the checking process
     root = Node(start, None, None, None)
     fringe.append(root)
     expanded.append(root)
     generated_children = expand_node(start, root)
-    
+    exp_map[root.get_state()] = [i.get_state() for i in generated_children]
     for child in generated_children:
-        count = count + 1
         fringe.append(child)
-
     goal_node = None
     goal_not_found = True
     while fringe and goal_not_found:
         s = fringe.pop(0)
-        #print(s.get_state(), end = " ")
         for i in fringe:
-            if count < 1000:
-                generated_children = expand_node(i.get_state(), i)
-                expanded_children = []
-                for exp in expanded:
-                    expanded_children.append(exp.get_children())
-                if i.get_children() not in expanded_children:
-                    if i not in expanded:
-                        #s = fringe.pop(0)
+            if len(expanded) <= 1000:
+                if i not in expanded and i not in exp_map.keys():
+                    generated_children = expand_node(i.get_state(), i)
+
+                    # Check if any child nodes are the same
+                    if [child.get_state() for child in generated_children] not in exp_map.values():
                         expanded.append(i)
+                        exp_map[i.get_state()] = [i.get_state() for i in generated_children]
                         if i.get_state() == goal:
                             goal_not_found = False
                             goal_node = i
                             break
                         for child in generated_children:
-                            count = count + 1
                             fringe.append(child)
             else:
-                print(count)
                 print("No solution found.")
-                return
-
-    path_to_goal = []
-    root_not_found = True
-    current_node = goal_node
-    while root_not_found:
-        if current_node == None:
-            break
-        else:
-            path_to_goal.append(current_node.get_state())
-            current_node = current_node.get_parent()
-            if current_node == None:
-                break
-            else:
-                path_to_goal.append(current_node.get_state())
-                if current_node.get_state() == start:
-                    root_not_found = False
-                    break
-                else:
-                    current_node = current_node.get_parent()
-
-    states_expanded = []
-    for i in expanded:
-        states_expanded.append(i.get_state())
-    states_expanded = [i for i in states_expanded if i]
-    path_to_goal = path_to_goal[::-1]
-    path_to_str = ' '.join([str(elem) for elem in path_to_goal])
-    expanded_to_str = ' '.join([str(elem) for elem in states_expanded])
-    print(path_to_str)
-    print(expanded_to_str)
-    return path_to_goal, states_expanded
+                return 
+    if goal_node == None:
+        print("No solution found.")
+        return 
+    else:
+        print(goal_node.path_to_goal())
+        print(get_exapnded_states(expanded))
+        return goal_node.path_to_goal(), get_exapnded_states(expanded)
 
     
 if __name__ == "__main__":
@@ -177,6 +170,7 @@ if __name__ == "__main__":
     goal = f.readline().rstrip()
     forbidden = f.readline().rstrip().split(",")
     f.close()
+
     if search == "B":
         BFS(start, goal)
     
