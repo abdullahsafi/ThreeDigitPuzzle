@@ -9,7 +9,7 @@ Constraints:
 - Cant transform into a forbidden state
 - Cant change the same digit twice in a row
 """
-import sys, numpy as np
+import sys, collections
 
 forbidden = []
 
@@ -110,11 +110,15 @@ def expand_node(node_state, parent):
         if parent.get_index() != 2:
             children.append(Node(subtract_digit(node_state, 2),parent, None, 2))
             children.append(Node(add_digit(node_state, 2),parent, None, 2))
-        children = [i for i in children if i] #removes none values
-        parent.set_children(children)
-        return children
+        children_not_none = []
+        for node in children:
+            if node.get_state() != None:
+                if node.get_state() not in forbidden:
+                    children_not_none.append(node)
+        parent.set_children(children_not_none)
+        return children_not_none
 
-def get_exapnded_states(expanded):
+def get_expanded_states(expanded):
     states_expanded = [i.get_state() for i in expanded]
     states_expanded = [i for i in states_expanded if i] # Gets rid of none values
     expanded_to_str = ' '.join([str(elem) for elem in states_expanded])
@@ -123,33 +127,36 @@ def get_exapnded_states(expanded):
 def BFS(start, goal):
     fringe = []
     expanded = []
-    exp_map = dict() # Maps expanded nodes with children for the checking process
+    # Create a dict for nodes to check there are no two same nodes
+    exp_map = dict()
+    # Init the root node and add to fringe
     root = Node(start, None, None, None)
+    # Add root to the fringe
     fringe.append(root)
-    expanded.append(root)
-    generated_children = expand_node(start, root)
-    exp_map[root.get_state()] = [i.get_state() for i in generated_children]
-    for child in generated_children:
-        fringe.append(child)
-    goal_node = None
-    goal_not_found = True
-    while fringe and goal_not_found:
-        s = fringe.pop(0)
-        for i in fringe:
-            if len(expanded) <= 1000:
-                if i not in expanded and i not in exp_map.keys():
-                    generated_children = expand_node(i.get_state(), i)
 
-                    # Check if any child nodes are the same
-                    if [child.get_state() for child in generated_children] not in exp_map.values():
-                        expanded.append(i)
-                        exp_map[i.get_state()] = [i.get_state() for i in generated_children]
-                        if i.get_state() == goal:
-                            goal_not_found = False
-                            goal_node = i
-                            break
-                        for child in generated_children:
-                            fringe.append(child)
+    goal_node = None
+    while fringe and goal_node == None:
+        # Loop through each node in fringe
+        for current_node in fringe:
+            # Ensure less than 1000 nodes are expanded
+            if len(expanded) <= 1000:
+                # Check if we have expanded this before and Check if it has the same children
+                if current_node.get_state() in exp_map.keys() and current_node.get_index() == exp_map[current_node.get_state()]:
+                    continue
+                else:
+                    # Expand the current node
+                    generated_children = expand_node(current_node.get_state(), current_node)
+                    gen_children_states = [child.get_state() for child in generated_children]
+                    # Continue by adding the new node to expanded and new children to fringe
+                    expanded.append(current_node)
+                    exp_map[current_node.get_state()] = current_node.get_index()
+                    # Check if current node is a goal node, break for loop and while condition == false
+                    if current_node.get_state() == goal:
+                        goal_node = current_node
+                        break
+                    # Add children to the fringe
+                    for child in generated_children:
+                        fringe.append(child) 
             else:
                 print("No solution found.")
                 return 
@@ -158,10 +165,9 @@ def BFS(start, goal):
         return 
     else:
         print(goal_node.path_to_goal())
-        print(get_exapnded_states(expanded))
-        return goal_node.path_to_goal(), get_exapnded_states(expanded)
+        print(get_expanded_states(expanded))
+        return
 
-    
 if __name__ == "__main__":
     search = sys.argv[1]
     file_name = sys.argv[2]
@@ -173,5 +179,6 @@ if __name__ == "__main__":
 
     if search == "B":
         BFS(start, goal)
-    
+    #elif search == "D":
+        #DFS(start, goal)
 
