@@ -14,12 +14,12 @@ import sys, collections
 forbidden = []
 
 class Node:
-    def __init__(self, state, parent, children, expanded_index):
+    def __init__(self, state, parent, children, expanded_index, depth):
         self.state = state
         self.parent = parent
         self.children = children
         self.expanded_index = expanded_index
-    
+        self.depth = depth
     def get_state(self):
         return self.state
     
@@ -52,6 +52,9 @@ class Node:
         path_to_goal = path_to_goal[::-1]
         path_to_str = ' '.join([str(elem) for elem in path_to_goal]) + " " + self.get_state()
         return path_to_str
+    
+    def get_depth(self):
+        return self.depth
 
 
 
@@ -71,11 +74,8 @@ def add_digit(state, index):
             state = state[:2] + str(new_digit)
     else:
         return None
-    
-    if state not in forbidden:
-        return state
-    else:
-        return None
+    return state
+
 
 def subtract_digit(state, index):
     """
@@ -93,23 +93,21 @@ def subtract_digit(state, index):
             state = state[:2] + str(new_digit)
     else:
         return None
-    if state not in forbidden:
-        return state
-    else:
-        return None
+    return state
+    
 
 def expand_node(node_state, parent):
         """Expands node and adds the children to the tree""" 
         children = []
         if parent.get_index() != 0:
-            children.append(Node(subtract_digit(node_state, 0),parent, None, 0))
-            children.append(Node(add_digit(node_state, 0),parent, None, 0))
+            children.append(Node(subtract_digit(node_state, 0),parent, None, 0, parent.get_depth() + 1))
+            children.append(Node(add_digit(node_state, 0),parent, None, 0, parent.get_depth() + 1))
         if parent.get_index() != 1:
-            children.append(Node(subtract_digit(node_state, 1),parent, None, 1))
-            children.append(Node(add_digit(node_state, 1),parent, None, 1))
+            children.append(Node(subtract_digit(node_state, 1),parent, None, 1, parent.get_depth() + 1))
+            children.append(Node(add_digit(node_state, 1),parent, None, 1, parent.get_depth() + 1))
         if parent.get_index() != 2:
-            children.append(Node(subtract_digit(node_state, 2),parent, None, 2))
-            children.append(Node(add_digit(node_state, 2),parent, None, 2))
+            children.append(Node(subtract_digit(node_state, 2),parent, None, 2, parent.get_depth() + 1))
+            children.append(Node(add_digit(node_state, 2),parent, None, 2, parent.get_depth() + 1))
         children_not_none = []
         for node in children:
             if node.get_state() != None:
@@ -124,49 +122,100 @@ def get_expanded_states(expanded):
     expanded_to_str = ' '.join([str(elem) for elem in states_expanded])
     return expanded_to_str
 
+
 def BFS(start, goal):
     fringe = []
     expanded = []
-    # Create a dict for nodes to check there are no two same nodes
+    # Create a dict for nodes to check there are no two same nodes (state:index)
     exp_map = dict()
-    # Init the root node and add to fringe
-    root = Node(start, None, None, None)
-    # Add root to the fringe
-    fringe.append(root)
-
-    goal_node = None
-    while fringe and goal_node == None:
-        # Loop through each node in fringe
-        for current_node in fringe:
-            # Ensure less than 1000 nodes are expanded
-            if len(expanded) <= 1000:
-                # Check if we have expanded this before and Check if it has the same children
-                if current_node.get_state() in exp_map.keys() and current_node.get_index() == exp_map[current_node.get_state()]:
-                    continue
-                else:
-                    # Expand the current node
-                    generated_children = expand_node(current_node.get_state(), current_node)
-                    gen_children_states = [child.get_state() for child in generated_children]
-                    # Continue by adding the new node to expanded and new children to fringe
-                    expanded.append(current_node)
-                    exp_map[current_node.get_state()] = current_node.get_index()
-                    # Check if current node is a goal node, break for loop and while condition == false
-                    if current_node.get_state() == goal:
-                        goal_node = current_node
-                        break
-                    # Add children to the fringe
-                    for child in generated_children:
-                        fringe.append(child) 
+    # Init the root node as the current node
+    current_node = Node(start, None, None, None, 0)
+    while current_node.get_state() != goal:
+        # Add the current node to expanded
+        expanded.append(current_node)
+        # Now we generate the children for the current node
+        generated_children = expand_node(current_node.get_state(), current_node)
+        # Ensure the length of the expanded list is less than 1000
+        if len(expanded) <= 1000:
+            # Add the current node to the expanded dict
+            # Check if that state has already been in the dict
+            if current_node.get_state() in exp_map.keys():
+                # We need to add to the list of values for the same state key
+                exp_map[current_node.get_state()].append(current_node.get_index())
             else:
-                print("No solution found.")
-                return 
-    if goal_node == None:
-        print("No solution found.")
-        return 
-    else:
-        print(goal_node.path_to_goal())
-        print(get_expanded_states(expanded))
-        return
+                # Havent expanded that state before make a list just incase of mulitple similar states
+                exp_map[current_node.get_state()] = []
+                exp_map[current_node.get_state()].append(current_node.get_index())
+            # Add the new child nodes to the fringe
+            fringe += generated_children
+            # Find next node to expand
+            for node in fringe:
+                # Check the node has been expanded already using the dict
+                if node.get_state() in exp_map.keys() and node.get_index() in exp_map[node.get_state()]:
+                    del node
+                else:
+                    # New node is now the current node
+                    current_node = node
+                    del node
+                    break
+        else:
+            print("No solution found.")
+            return
+    # for k, v in exp_map.items():
+    #     print(k, v)
+
+    # If we find the goal node
+    goal_node = current_node
+    expanded.append(goal_node)
+    print(goal_node.path_to_goal())
+    print(get_expanded_states(expanded))
+    return
+
+def DFS(start, goal):
+    fringe = []
+    expanded = []
+    # Create a dict for nodes to check there are no two same nodes (state:index)
+    exp_map = dict()
+    # Init the root node as the current node
+    current_node = Node(start, None, None, None, 0)
+    while current_node.get_state() != goal:
+        # Add the current node to expanded
+        expanded.append(current_node)
+        # Now we generate the children for the current node
+        generated_children = expand_node(current_node.get_state(), current_node)
+        # Ensure the length of the expanded list is less than 1000
+        if len(expanded) <= 1000:
+            # Add the current node to the expanded dict
+            # Check if that state has already been in the dict
+            if current_node.get_state() in exp_map.keys():
+                # We need to add to the list of values for the same state key
+                exp_map[current_node.get_state()].append(current_node.get_index())
+            else:
+                # Havent expanded that state before make a list just incase of mulitple similar states
+                exp_map[current_node.get_state()] = []
+                exp_map[current_node.get_state()].append(current_node.get_index())          
+            # Add the new child nodes to the fringe
+            fringe[:0] = generated_children
+            for node in fringe:
+                # Check the node has been expanded already using the dict
+                if node.get_state() in exp_map.keys() and node.get_index() in exp_map[node.get_state()]:
+                    del node
+                else:
+                    # New node is now the current node
+                    current_node = node
+                    del node
+                    break
+        else:
+            print("No solution found.")
+            return
+    
+    
+    # If we find the goal node
+    goal_node = current_node
+    expanded.append(goal_node)
+    print(goal_node.path_to_goal())
+    print(get_expanded_states(expanded))
+    return
 
 if __name__ == "__main__":
     search = sys.argv[1]
@@ -179,6 +228,8 @@ if __name__ == "__main__":
 
     if search == "B":
         BFS(start, goal)
-    #elif search == "D":
-        #DFS(start, goal)
+    elif search == "D":
+        DFS(start, goal)
+    
+
 
