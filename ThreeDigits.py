@@ -14,12 +14,13 @@ import sys, collections
 forbidden = []
 
 class Node:
-    def __init__(self, state, parent, children, expanded_index, depth):
+    def __init__(self, state, parent, children, expanded_index, depth, h):
         self.state = state
         self.parent = parent
         self.children = children
         self.expanded_index = expanded_index
         self.depth = depth
+        self.h = h
     def get_state(self):
         return self.state
     
@@ -55,6 +56,12 @@ class Node:
     
     def get_depth(self):
         return self.depth
+    
+    def get_h(self):
+        return self.h
+    
+    def set_h(self, h):
+        self.h = h
 
 
 
@@ -100,14 +107,14 @@ def expand_node(node_state, parent):
         """Expands node and adds the children to the tree""" 
         children = []
         if parent.get_index() != 0:
-            children.append(Node(subtract_digit(node_state, 0),parent, None, 0, parent.get_depth() + 1))
-            children.append(Node(add_digit(node_state, 0),parent, None, 0, parent.get_depth() + 1))
+            children.append(Node(subtract_digit(node_state, 0),parent, None, 0, parent.get_depth() + 1, 0))
+            children.append(Node(add_digit(node_state, 0),parent, None, 0, parent.get_depth() + 1, 0))
         if parent.get_index() != 1:
-            children.append(Node(subtract_digit(node_state, 1),parent, None, 1, parent.get_depth() + 1))
-            children.append(Node(add_digit(node_state, 1),parent, None, 1, parent.get_depth() + 1))
+            children.append(Node(subtract_digit(node_state, 1),parent, None, 1, parent.get_depth() + 1, 0))
+            children.append(Node(add_digit(node_state, 1),parent, None, 1, parent.get_depth() + 1, 0))
         if parent.get_index() != 2:
-            children.append(Node(subtract_digit(node_state, 2),parent, None, 2, parent.get_depth() + 1))
-            children.append(Node(add_digit(node_state, 2),parent, None, 2, parent.get_depth() + 1))
+            children.append(Node(subtract_digit(node_state, 2),parent, None, 2, parent.get_depth() + 1, 0))
+            children.append(Node(add_digit(node_state, 2),parent, None, 2, parent.get_depth() + 1, 0))
         children_not_none = []
         for node in children:
             if node.get_state() != None:
@@ -208,14 +215,91 @@ def DFS(start, goal):
         else:
             print("No solution found.")
             return
-    
-    
     # If we find the goal node
     goal_node = current_node
     expanded.append(goal_node)
     print(goal_node.path_to_goal())
     print(get_expanded_states(expanded))
     return
+
+def calc_heurstic(current_node, goal):
+    h = 0
+    for i in range(3):
+        h += abs(int(current_node.get_state()[i]) - int(goal[i]))
+    current_node.set_h(h)
+    return h
+
+def add_child_to_fringe(child, fringe):
+    for i in range(len(fringe)):
+        if fringe[i].get_h() >= child.get_h():
+            fringe.insert(i, child)
+            break
+    else:
+        fringe.append(child)
+
+def greedy(start, goal):
+    fringe = []
+    expanded = []
+    # Create a dict for nodes to check there are no two same nodes (state:index)
+    exp_map = dict()
+    # Init the root node as the current node
+    current_node = Node(start, None, None, None, 0, 0)
+    # Calculate h for root
+    calc_heurstic(current_node, goal)
+    while current_node.get_state() != goal:
+        # Add the current node to expanded
+        expanded.append(current_node)
+        # Now we generate the children for the current node
+        generated_children = expand_node(current_node.get_state(), current_node)
+
+        # Generate heuristc for child nodes
+        for i in generated_children:
+            calc_heurstic(i,goal)
+
+
+        
+
+        # Ensure the length of the expanded list is less than 1000
+        if len(expanded) <= 10:
+            # Add the current node to the expanded dict
+            # Check if that state has already been in the dict
+            if current_node.get_state() in exp_map.keys():
+                # We need to add to the list of values for the same state key
+                exp_map[current_node.get_state()].append(current_node.get_index())
+            else:
+                # Havent expanded that state before make a list just incase of mulitple similar states
+                exp_map[current_node.get_state()] = []
+                exp_map[current_node.get_state()].append(current_node.get_index())
+            
+            # Add the new child nodes to the fringe
+            for i in generated_children:
+                add_child_to_fringe(i, fringe)                    
+                        
+            # Find next node to expand
+            for node in fringe:
+                # Check the node has been expanded already using the dict
+                if node.get_state() in exp_map.keys() and node.get_index() in exp_map[node.get_state()]:
+                    del node
+                else:
+                    # New node is now the current node
+                    current_node = node
+                    del node
+                    break
+        else:
+            print([child.get_state() for child in expanded])
+            print("No solution found.")
+            return
+    # for k, v in exp_map.items():
+    #     print(k, v)
+
+    # If we find the goal node
+    goal_node = current_node
+    expanded.append(goal_node)
+    print(goal_node.path_to_goal())
+    print(get_expanded_states(expanded))
+    return
+
+
 
 if __name__ == "__main__":
     search = sys.argv[1]
@@ -230,6 +314,19 @@ if __name__ == "__main__":
         BFS(start, goal)
     elif search == "D":
         DFS(start, goal)
-    
+    # elif search == "I":
+    #     IDS(start, goal, 0)
+    elif search == "G":
+        greedy(start, goal)
+    # elif search == "A":
+    #     A_star(start, goal)
+    # elif search == "H":
+    #     hill_climbing(start, goal)
+
+    # parent = Node("320", None, None, None, 0, 0)
+    # current_node = Node("220", None, None, None, 0, 0)
+
+    # print(calc_heurstic(parent, current_node))
+
 
 
