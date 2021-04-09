@@ -136,7 +136,7 @@ def BFS(start, goal):
     # Create a dict for nodes to check there are no two same nodes (state:index)
     exp_map = dict()
     # Init the root node as the current node
-    current_node = Node(start, None, None, None, 0)
+    current_node = Node(start, None, None, None, 0, 0)
     while current_node.get_state() != goal:
         # Add the current node to expanded
         expanded.append(current_node)
@@ -184,7 +184,7 @@ def DFS(start, goal):
     # Create a dict for nodes to check there are no two same nodes (state:index)
     exp_map = dict()
     # Init the root node as the current node
-    current_node = Node(start, None, None, None, 0)
+    current_node = Node(start, None, None, None, 0, 0)
     while current_node.get_state() != goal:
         # Add the current node to expanded
         expanded.append(current_node)
@@ -231,7 +231,7 @@ def calc_heurstic(current_node, goal):
 
 def add_child_to_fringe(child, fringe):
     for i in range(len(fringe)):
-        if fringe[i].get_h() >= child.get_h():
+        if  child.get_h() <= fringe[i].get_h():
             fringe.insert(i, child)
             break
     else:
@@ -251,14 +251,9 @@ def greedy(start, goal):
         expanded.append(current_node)
         # Now we generate the children for the current node
         generated_children = expand_node(current_node.get_state(), current_node)
-
         # Generate heuristc for child nodes
         for i in generated_children:
             calc_heurstic(i,goal)
-
-
-        
-
         # Ensure the length of the expanded list is less than 1000
         if len(expanded) <= 10:
             # Add the current node to the expanded dict
@@ -270,11 +265,9 @@ def greedy(start, goal):
                 # Havent expanded that state before make a list just incase of mulitple similar states
                 exp_map[current_node.get_state()] = []
                 exp_map[current_node.get_state()].append(current_node.get_index())
-            
             # Add the new child nodes to the fringe
             for i in generated_children:
-                add_child_to_fringe(i, fringe)                    
-                        
+                add_child_to_fringe(i, fringe)                        
             # Find next node to expand
             for node in fringe:
                 # Check the node has been expanded already using the dict
@@ -289,9 +282,6 @@ def greedy(start, goal):
             print([child.get_state() for child in expanded])
             print("No solution found.")
             return
-    # for k, v in exp_map.items():
-    #     print(k, v)
-
     # If we find the goal node
     goal_node = current_node
     expanded.append(goal_node)
