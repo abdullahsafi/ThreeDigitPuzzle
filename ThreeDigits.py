@@ -181,6 +181,7 @@ def BFS(start, goal):
                     break
         else:
             print("No solution found.")
+            print(get_expanded_states(expanded))
             return
     # for k, v in exp_map.items():
     #     print(k, v)
@@ -205,7 +206,7 @@ def DFS(start, goal):
         # Now we generate the children for the current node
         generated_children = expand_node(current_node.get_state(), current_node)
         # Ensure the length of the expanded list is less than 1000
-        if len(expanded) <= 1000:
+        if len(expanded) < 1000:
             # Add the current node to the expanded dict
             # Check if that state has already been in the dict
             if current_node.get_state() in exp_map.keys():
@@ -219,15 +220,23 @@ def DFS(start, goal):
             fringe[:0] = generated_children
             for node in fringe:
                 # Check the node has been expanded already using the dict
-                if node.get_state() in exp_map.keys() and node.get_index() in exp_map[node.get_state()]:
-                    del node
+                if node.get_state() in exp_map.keys():
+                    if node.get_index() not in exp_map[node.get_state()]:
+                        current_node = node
+                        del node
+                        break
                 else:
                     # New node is now the current node
                     current_node = node
                     del node
                     break
+            if len(fringe) == 0:
+                print("No solution found.")
+                print(get_expanded_states(expanded))
+                return
         else:
             print("No solution found.")
+            print(get_expanded_states(expanded))
             return
     # If we find the goal node
     goal_node = current_node
@@ -235,6 +244,69 @@ def DFS(start, goal):
     print(goal_node.path_to_goal())
     print(get_expanded_states(expanded))
     return
+
+def DLS(start, goal, max_depth):
+    fringe = []
+    expanded = []
+    # Create a dict for nodes to check there are no two same nodes (state:index)
+    exp_map = dict()
+    # Init the root node as the current node
+    current_node = Node(start, None, None, None, 0, 0, 0)
+    while current_node.get_state() != goal:
+        # Add the current node to expanded
+        expanded.append(current_node)
+        # Now we generate the children for the current node
+        generated_children = expand_node(current_node.get_state(), current_node)
+        # Ensure the length of the expanded list is less than 1000
+        if len(expanded) < 1000:
+            # Add the current node to the expanded dict
+            # Check if that state has already been in the dict
+            if current_node.get_state() in exp_map.keys():
+                # We need to add to the list of values for the same state key
+                exp_map[current_node.get_state()].append(current_node.get_index())
+            else:
+                # Havent expanded that state before make a list just incase of mulitple similar states
+                exp_map[current_node.get_state()] = []
+                exp_map[current_node.get_state()].append(current_node.get_index())          
+            # Add the new child nodes to the fringe
+            fringe[:0] = generated_children
+            for node in fringe:
+                if current_node.get_depth() == max_depth:
+                    break
+                # Check the node has been expanded already using the dict
+                if node.get_state() in exp_map.keys():
+                    if node.get_index() not in exp_map[node.get_state()]:
+                        current_node = node
+                        del node
+                        break
+                else:
+                    # New node is now the current node
+                    current_node = node
+                    del node
+                    break
+            if len(fringe) == 0:
+                print("No solution found.")
+                print(get_expanded_states(expanded))
+                return
+        else:
+            print("No solution found.")
+            print(get_expanded_states(expanded))
+            return
+    # If we find the goal node
+    goal_node = current_node
+    expanded.append(goal_node)
+    print(goal_node.path_to_goal())
+    print(get_expanded_states(expanded))
+    return
+
+def IDS(start, goal):
+
+    return
+
+
+
+
+
 
 def calc_heurstic(current_node, goal):
     h_n = 0
@@ -294,6 +366,7 @@ def greedy(start, goal):
                     break
         else:
             print("No solution found.")
+            print(get_expanded_states(expanded))
             return
     # If we find the goal node
     goal_node = current_node
@@ -364,6 +437,7 @@ def A_star(start, goal):
                     break
         else:
             print("No solution found.")
+            print(get_expanded_states(expanded))
             return
     # If we find the goal node
     #print([i.get_state() for i in expanded])
@@ -439,20 +513,23 @@ if __name__ == "__main__":
     goal = f.readline().rstrip()
     forbidden = f.readline().rstrip().split(",")
     f.close()
-
-    if search == "B":
-        BFS(start, goal)
-    elif search == "D":
-        DFS(start, goal)
-    # elif search == "I":
-    #     IDS(start, goal, 0)
-    elif search == "G":
-        greedy(start, goal)
-    elif search == "A":
-        A_star(start, goal)
-    elif search == "H":
-        hill_climbing(start, goal)
+    if start not in forbidden:
+        if search == "B":
+            BFS(start, goal)
+        elif search == "D":
+            DFS(start, goal)
+        elif search == "I":
+            DLS(start, goal, 5)
+        elif search == "G":
+            greedy(start, goal)
+        elif search == "A":
+            A_star(start, goal)
+        elif search == "H":
+            hill_climbing(start, goal)
+    else:
+        print("No solution found.")
 
     # parent = Node("320", None, None, None, 0, 10, 0)
     # current_node = Node("220", parent, None, None, 0, 2, 0)
     # print(calc_f_n(current_node, goal))
+    
