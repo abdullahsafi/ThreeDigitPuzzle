@@ -245,69 +245,7 @@ def DFS(start, goal):
     print(get_expanded_states(expanded))
     return
 
-def DLS(start, goal, max_depth):
-    fringe = []
-    expanded = []
-    # Create a dict for nodes to check there are no two same nodes (state:index)
-    exp_map = dict()
-    # Init the root node as the current node
-    current_node = Node(start, None, None, None, 0, 0, 0)
-    while current_node.get_state() != goal:
-        # Add the current node to expanded
-        expanded.append(current_node)
-        # Now we generate the children for the current node
-        generated_children = expand_node(current_node.get_state(), current_node)
-        # Ensure the length of the expanded list is less than 1000
-        if len(expanded) < 1000:
-            # Add the current node to the expanded dict
-            # Check if that state has already been in the dict
-            if current_node.get_state() in exp_map.keys():
-                # We need to add to the list of values for the same state key
-                exp_map[current_node.get_state()].append(current_node.get_index())
-            else:
-                # Havent expanded that state before make a list just incase of mulitple similar states
-                exp_map[current_node.get_state()] = []
-                exp_map[current_node.get_state()].append(current_node.get_index())          
-            # Add the new child nodes to the fringe
-            fringe[:0] = generated_children
-            for node in fringe:
-                if current_node.get_depth() == max_depth:
-                    break
-                # Check the node has been expanded already using the dict
-                if node.get_state() in exp_map.keys():
-                    if node.get_index() not in exp_map[node.get_state()]:
-                        current_node = node
-                        del node
-                        break
-                else:
-                    # New node is now the current node
-                    current_node = node
-                    del node
-                    break
-            if len(fringe) == 0:
-                print("No solution found.")
-                print(get_expanded_states(expanded))
-                return
-        else:
-            print("No solution found.")
-            print(get_expanded_states(expanded))
-            return
-    # If we find the goal node
-    goal_node = current_node
-    expanded.append(goal_node)
-    print(goal_node.path_to_goal())
-    print(get_expanded_states(expanded))
-    return
-
-def IDS(start, goal):
-
-    return
-
-
-
-
-
-
+        
 def calc_heurstic(current_node, goal):
     h_n = 0
     for i in range(3):
@@ -504,6 +442,83 @@ def hill_climbing(start, goal):
     print(goal_node.path_to_goal())
     print(get_expanded_states(expanded))
     return
+        
+def check_depth(start):
+    fringe = []
+    root = Node(start, None, None, None, 0, 0, 0)
+    generated_children = expand_node(root.get_state(), root)                
+    #generated_children = generated_children[::-1]
+    print("Generated children: " + str([i.get_state() for i in generated_children]))
+    print("Children Depths: " + str([i.get_depth() for i in generated_children]))
+
+def DLS(start, goal, max_depth, limit):
+    fringe = []
+    expanded = []
+    exp_map = dict()
+    expanded.append(start)
+    exp_map[start.get_state()] = [start.get_index()]
+
+    if max_depth == 0:
+        return expanded, start
+    current_node = start
+    
+    while current_node.get_state() != goal and len(expanded) != limit:
+
+        if current_node.get_depth() < max_depth:
+            generated_children = expand_node(current_node.get_state(), current_node)
+            generated_children = generated_children[::-1]
+            for child in generated_children:
+                if child.get_state() not in exp_map.keys():
+                    fringe.insert(0, child)
+                else:
+                    if child.get_index() not in exp_map[child.get_state()]:
+                        fringe.insert(0, child)
+        
+        for node in fringe:
+            if node.get_state() in exp_map.keys() and node.get_index() in exp_map[node.get_state()]:
+                fringe.remove(node) 
+        if len(fringe) == 0:
+            return expanded, current_node
+        
+        current_node = fringe.pop(0)
+
+        if current_node.get_state() not in exp_map.keys():
+            expanded.append(current_node)
+            if current_node.get_state() not in exp_map.keys():
+                exp_map[current_node.get_state()] = [current_node.get_index()]
+            else:
+                exp_map[current_node.get_state()].append(current_node.get_index())
+        else:
+            if current_node.get_index() not in exp_map[current_node.get_state()]:
+                expanded.append(current_node)
+                if current_node.get_state() not in exp_map.keys():
+                    exp_map[current_node.get_state()] = [current_node.get_index()]
+                else:
+                    exp_map[current_node.get_state()].append(current_node.get_index())
+    return expanded, current_node
+
+def IDS(start, goal):
+    expanded_full = []
+    depth = 0
+    root = Node(start, None, None, None, 0, 0, 0)
+    expanded_limit = 1000
+    while len(expanded_full) < 1000:
+        #print([i.get_state() for i in expanded_full])
+        expanded_DLS, current_node_DLS = DLS(root, goal, depth, expanded_limit)
+        depth = depth + 1
+        expanded_full = expanded_full + expanded_DLS
+        expanded_limit = expanded_limit - len(expanded_DLS)
+        if expanded_limit <= 0:
+            print("No solution found.")
+            print(get_expanded_states(expanded_full))
+            return
+        if current_node_DLS.get_state() == goal:
+            print(current_node_DLS.path_to_goal())
+            print(get_expanded_states(expanded_full))
+            return
+    print("No solution found.")
+    print(get_expanded_states(expanded_full))
+    return
 
 if __name__ == "__main__":
     search = sys.argv[1]
@@ -519,7 +534,9 @@ if __name__ == "__main__":
         elif search == "D":
             DFS(start, goal)
         elif search == "I":
-            DLS(start, goal, 5)
+            #DLSS(start, goal, 1, 10)
+            #check_depth("320")
+            IDS(start, goal)
         elif search == "G":
             greedy(start, goal)
         elif search == "A":
