@@ -179,6 +179,11 @@ def BFS(start, goal):
                     current_node = node
                     del node
                     break
+
+            if len(fringe) == 0:
+                print("No solution found.")
+                print(get_expanded_states(expanded))
+                return
         else:
             print("No solution found.")
             print(get_expanded_states(expanded))
@@ -302,6 +307,11 @@ def greedy(start, goal):
                     current_node = node
                     del node
                     break
+            
+            if len(fringe) == 0:
+                print("No solution found.")
+                print(get_expanded_states(expanded))
+                return
         else:
             print("No solution found.")
             print(get_expanded_states(expanded))
@@ -373,6 +383,10 @@ def A_star(start, goal):
                     current_node = node
                     del node
                     break
+            if len(fringe) == 0:
+                print("No solution found.")
+                print(get_expanded_states(expanded))
+                return
         else:
             print("No solution found.")
             print(get_expanded_states(expanded))
@@ -457,44 +471,56 @@ def DLS(start, goal, max_depth, limit):
     exp_map = dict()
     expanded.append(start)
     exp_map[start.get_state()] = [start.get_index()]
-
+    # Check if depth is 0 so then just return the root
     if max_depth == 0:
         return expanded, start
     current_node = start
-    
     while current_node.get_state() != goal and len(expanded) != limit:
-
+        # If current node depth is under the max -> generate and add new children nodes
         if current_node.get_depth() < max_depth:
             generated_children = expand_node(current_node.get_state(), current_node)
+            # Reverse the list so that when we use insert child at index 0, the order of children is correct
             generated_children = generated_children[::-1]
             for child in generated_children:
-                if child.get_state() not in exp_map.keys():
-                    fringe.insert(0, child)
-                else:
+                if child.get_state() in exp_map.keys():
                     if child.get_index() not in exp_map[child.get_state()]:
+                        # If not in exp_map, then we haven't seen this node so insert
                         fringe.insert(0, child)
+                else:
+                    # If state is not in exp_map keys then we insert
+                    fringe.insert(0, child)
         
         for node in fringe:
+            # Remove the node from fringe if we have seen it before
             if node.get_state() in exp_map.keys() and node.get_index() in exp_map[node.get_state()]:
                 fringe.remove(node) 
+
         if len(fringe) == 0:
             return expanded, current_node
-        
+
+        # Get next node in fringe
         current_node = fringe.pop(0)
 
+        # Adding nodes to the exp_map
         if current_node.get_state() not in exp_map.keys():
             expanded.append(current_node)
             if current_node.get_state() not in exp_map.keys():
+                # This is a new node that we havent added to exp_map, so we add with a new list as values
                 exp_map[current_node.get_state()] = [current_node.get_index()]
             else:
+                # We have seen the same state but different index then add it to the list
                 exp_map[current_node.get_state()].append(current_node.get_index())
         else:
+            # If node is not in the exp_map then we can expand
             if current_node.get_index() not in exp_map[current_node.get_state()]:
                 expanded.append(current_node)
                 if current_node.get_state() not in exp_map.keys():
+                    # This is a new node that we havent added to exp_map, so we add with a new list as values
                     exp_map[current_node.get_state()] = [current_node.get_index()]
                 else:
+                    # We have seen the same state but different index then add it to the list
                     exp_map[current_node.get_state()].append(current_node.get_index())
+    # Return if we find goal or go over the 1000 state limit 
     return expanded, current_node
 
 def IDS(start, goal):
@@ -502,20 +528,25 @@ def IDS(start, goal):
     depth = 0
     root = Node(start, None, None, None, 0, 0, 0)
     expanded_limit = 1000
+    # Iterate 1000 times while incrementing depth until a solution or failure is found
     while len(expanded_full) < 1000:
         #print([i.get_state() for i in expanded_full])
         expanded_DLS, current_node_DLS = DLS(root, goal, depth, expanded_limit)
         depth = depth + 1
+        # Adding each iteration of expanded lists to the full expanded list
         expanded_full = expanded_full + expanded_DLS
         expanded_limit = expanded_limit - len(expanded_DLS)
         if expanded_limit <= 0:
+            # Passed the 1000 state limit
             print("No solution found.")
             print(get_expanded_states(expanded_full))
             return
         if current_node_DLS.get_state() == goal:
+            # Found the goal
             print(current_node_DLS.path_to_goal())
             print(get_expanded_states(expanded_full))
             return
+    # Passed the 1000 state limit
     print("No solution found.")
     print(get_expanded_states(expanded_full))
     return
@@ -545,7 +576,6 @@ if __name__ == "__main__":
             hill_climbing(start, goal)
     else:
         print("No solution found.")
-
     # parent = Node("320", None, None, None, 0, 10, 0)
     # current_node = Node("220", parent, None, None, 0, 2, 0)
     # print(calc_f_n(current_node, goal))
